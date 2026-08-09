@@ -12,6 +12,7 @@ const passport = require("passport");
 const session = require("express-session");
 require("./config/passport");
 
+console.log("OPENROUTER_API_KEY configured:", Boolean(process.env.OPENROUTER_API_KEY));
 const app = express();
 
 app.use(cors());

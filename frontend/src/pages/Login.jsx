@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../api/api";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { useEffect } from "react";
-
+import api from "../api/api";
 
 export default function Login() {
   const [form, setForm] = useState({
@@ -15,7 +13,22 @@ export default function Login() {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState("");
 
-const navigate = useNavigate();
+  const navigate = useNavigate();
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+
+    if (token) {
+      localStorage.setItem("token", token);
+
+      // Remove token from browser URL
+      window.history.replaceState({}, document.title, "/login");
+
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const validate = () => {
     const e = {};
@@ -34,28 +47,31 @@ const navigate = useNavigate();
   };
 
   const onSubmit = async (ev) => {
-  ev.preventDefault();
-  setServerError("");
+    ev.preventDefault();
+    setServerError("");
+    setSubmitted(false);
 
-  const e = validate();
-  setErrors(e);
+    const e = validate();
+    setErrors(e);
 
-  if (Object.keys(e).length !== 0) return;
+    if (Object.keys(e).length !== 0) {
+      return;
+    }
 
-  try {
-    const response = await api.post("/auth/login", form);
+    try {
+      const response = await api.post("/auth/login", form);
 
-    localStorage.setItem("token", response.data.token);
+      localStorage.setItem("token", response.data.token);
 
-    setSubmitted(true);
+      setSubmitted(true);
 
-    navigate("/dashboard");
-  } catch (err) {
-    setServerError(
-      err.response?.data?.message || "Login failed"
-    );
-  }
-};
+      navigate("/dashboard");
+    } catch (err) {
+      setServerError(
+        err.response?.data?.message || "Login failed"
+      );
+    }
+  };
 
   const onChange = (key) => (ev) => {
     setForm({
@@ -70,34 +86,30 @@ const navigate = useNavigate();
 
     setSubmitted(false);
   };
-  useEffect(() => {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token");
 
-  if (token) {
-    localStorage.setItem("token", token);
-    navigate("/dashboard");
-  }
-}, [navigate]);
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+  };
 
   return (
-    <div
-      data-testid="login-page"
-      className="mx-auto flex max-w-md flex-col px-5 py-16 sm:py-24"
-    >
-      <div className="rounded-2xl border border-white/60 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_20px_48px_rgba(79,70,229,0.10)] sm:p-10">
-        <h1
-          data-testid="login-title"
-          className="font-display text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl"
+    <div className="min-h-screen bg-slate-50 px-4 py-12">
+      <div className="mx-auto w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-slate-900">
+            Login
+          </h1>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Welcome back. Sign in to continue.
+          </p>
+        </div>
+
+        <form
+          onSubmit={onSubmit}
+          className="mt-8 space-y-5"
+          noValidate
         >
-          Login
-        </h1>
-
-        <p className="mt-2 text-sm text-slate-500">
-          Welcome back. Sign in to continue.
-        </p>
-
-        <form onSubmit={onSubmit} className="mt-8 space-y-5" noValidate>
+          {/* Email */}
           <div>
             <label
               htmlFor="email"
@@ -130,6 +142,7 @@ const navigate = useNavigate();
             )}
           </div>
 
+          {/* Password */}
           <div>
             <div className="mb-1.5 flex items-center justify-between">
               <label
@@ -172,6 +185,7 @@ const navigate = useNavigate();
             )}
           </div>
 
+          {/* Login button */}
           <button
             type="submit"
             data-testid="login-submit-button"
@@ -181,43 +195,54 @@ const navigate = useNavigate();
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
 
+          {/* Server error */}
           {serverError && (
-  <p className="rounded-lg bg-red-50 px-3 py-2 text-center text-xs font-medium text-red-700">
-    {serverError}
-  </p>
-)}
+            <p
+              data-testid="login-server-error"
+              className="text-center text-sm text-rose-600"
+            >
+              {serverError}
+            </p>
+          )}
 
-{submitted && (
-  <p
-    className="rounded-lg bg-emerald-50 px-3 py-2 text-center text-xs font-medium text-emerald-700"
-  >
-    Login successful!
-  </p>
-)}
-<button
-  type="button"
-  onClick={() =>
-    window.location.href = "http://localhost:5000/api/auth/google"
-  }
-  className="mt-3 w-full rounded-xl border border-slate-300 bg-white py-3 text-sm font-semibold hover:bg-slate-50"
->
-  Sign in with Google
-</button>
+          {/* Google login */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+
+            <div className="relative flex justify-center">
+              <span className="bg-white px-3 text-xs text-slate-400">
+                OR
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="inline-flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            <span className="text-base font-bold">G</span>
+            Continue with Google
+          </button>
         </form>
 
-        <p
-          data-testid="login-signup-prompt"
-          className="mt-6 text-center text-sm text-slate-500"
-        >
-          New to StayInsight?{" "}
-          <a
-            href="#signup"
-            data-testid="login-signup-link"
-            className="font-semibold text-indigo-600 hover:text-indigo-700"
+        {submitted && (
+          <p
+            data-testid="login-signup-prompt"
+            className="mt-6 text-center text-sm text-slate-500"
           >
-            Create an account
-          </a>
-        </p>
+            New to StayInsight?{" "}
+            <a
+              href="#signup"
+              data-testid="login-signup-link"
+              className="font-semibold text-indigo-600 hover:text-indigo-700"
+            >
+              Create an account
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );

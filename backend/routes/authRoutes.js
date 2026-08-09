@@ -57,7 +57,9 @@ router.get(
       }
     );
 
-    res.redirect(`http://localhost:5173/login?token=${token}`);
+    res.redirect(
+      `${process.env.FRONTEND_URL}/login?token=${token}`
+    );
   }
 );
 module.exports = router;
